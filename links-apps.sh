@@ -5,7 +5,7 @@ APP_DIR="$HOME"/Applications
 
 for f in "$NIX_PROFILE"/Applications/*; do
     app_name="$(basename "$f")"
-    if [ ! -d "$APP_DIR/$app_name" ]; then
+    if [ ! -e "$APP_DIR/$app_name" ]; then
         ln -s "$f" "$APP_DIR"/
     fi
 done
