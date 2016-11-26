@@ -7,6 +7,10 @@ set -e
 # machine. This script must be run as root and single-user nix must be
 # installed first.
 
+# This is based off of:
+# - @expipiplus1's instructions in https://gist.github.com/expipiplus1/e571ce88c608a1e83547c918591b149f.
+# - Nix manual 6.2 at https://nixos.org/nix/manual/#ssec-multi-user.
+
 dest="/nix"
 group="nixbld"
 
@@ -175,7 +179,7 @@ chflags hidden /nix
 
 if [ -d /etc/paths.d ]; then
     echo "Adding /etc/paths.d/nix."
-    echo "/nix/var/nix/profiles/default" > /etc/paths.d/nix
+    echo "/nix/var/nix/profiles/default/bin" > /etc/paths.d/nix
 fi
 
 cat >&2 <<EOF
