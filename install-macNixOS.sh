@@ -11,8 +11,8 @@ set -e
 # - @expipiplus1's instructions in https://gist.github.com/expipiplus1/e571ce88c608a1e83547c918591b149f.
 # - Nix manual 6.2 at https://nixos.org/nix/manual/#ssec-multi-user.
 
-dest="/nix"
-group="nixbld"
+dest=/nix
+group=nixbld
 
 if [ -z "$USER" ]; then
     echo "$0: \$USER is not set" >&2
@@ -43,23 +43,23 @@ for i in $(seq 1 10); do
 
     dscl -q . create $user
     dscl -q . create $user RealName "Nix build user $i"
-    dscl -q . create $user PrimaryGroupID "$gid"
+    dscl -q . create $user PrimaryGroupID $gid
     dscl -q . create $user UserShell /usr/bin/false
     dscl -q . create $user NFSHomeDirectory /var/empty
-    dscl -q . create $user UniqueID "$uid"
+    dscl -q . create $user UniqueID $uid
 
     dscl . -append /Groups/$group GroupMembership $group$i
 
     dseditgroup -q -o edit -a $group$i -t user $group
 done
 
-if [ "$(ls -ld /nix | awk '{print $3}')" != root ]; then
+olduser=$(ls -ld $dest | awk '{print $3}')
+if [ "$olduser" != root ]; then
     echo "Removing single-user artifacts"
-    olduser=$(ls -ld /nix | awk '{print $3}')
     rm /Users/$olduser/.nix-profile
     rm -r /Users/$olduser/.nix-defexpr
-    if ! [ -e /nix/var/nix/profiles/per-user/$olduser/profile ]; then
-        ln -s /nix/var/nix/profiles/default /nix/var/nix/profiles/per-user/$olduser/profile
+    if ! [ -e $dest/var/nix/profiles/per-user/$olduser/profile ]; then
+        ln -s $dest/var/nix/profiles/default $dest/var/nix/profiles/per-user/$olduser/profile
     fi
 
     echo "Setting ownership for $dest"
@@ -67,12 +67,12 @@ if [ "$(ls -ld /nix | awk '{print $3}')" != root ]; then
 fi
 
 # extra stuff that shouldn't be necessary
-chmod 1777 /nix/var/nix/profiles
-chmod 1777 /nix/var/nix/profiles/per-user
-mkdir -m 1777 -p /nix/var/nix/gcroots/per-user
+chmod 1777 $dest/var/nix/profiles
+chmod 1777 $dest/var/nix/profiles/per-user
+mkdir -m 1777 -p $dest/var/nix/gcroots/per-user
 
 echo "Setting up user profile permissions"
-for profile in /nix/var/nix/profiles/per-user/*; do
+for profile in $dest/var/nix/profiles/per-user/*; do
     chown $(basename $profile):staff $profile
 done
 
@@ -81,7 +81,7 @@ echo "Adding build-users-group to /etc/nix/nix.conf."
 echo "build-users-group = $group # added by macNixOS installer" >> /etc/nix/nix.conf
 
 echo "Installing org.nixos.nix-daemon.plist in /Library/LaunchDaemons."
-ln -fs /nix/var/nix/profiles/default/Library/LaunchDaemons/org.nixos.nix-daemon.plist /Library/LaunchDaemons/
+ln -fs $dest/var/nix/profiles/default/Library/LaunchDaemons/org.nixos.nix-daemon.plist /Library/LaunchDaemons/
 
 echo "Starting nix-daemon."
 launchctl load -F /Library/LaunchDaemons/org.nixos.nix-daemon.plist
@@ -155,7 +155,7 @@ EOF
 . /etc/nix/nix-profile.sh
 nix-channel --update
 rm -f /nix/var/nix/profiles/.new_default
-nix-env -p /nix/var/nix/profiles/default -f $HOME/.nix-defexpr/channels/nixpkgs/ -iA nix
+nix-env -p $dest/var/nix/profiles/default -f $HOME/.nix-defexpr/channels/nixpkgs/ -iA nix
 nix-env -ri nix nss-cacert
 
 p=/etc/nix/nix-profile.sh
@@ -166,8 +166,8 @@ if ! grep -q "$p" "$fn"; then
 fi
 
 # just automatically set hidden
-echo "Hiding /nix directory."
-chflags hidden /nix
+echo "Hiding $dest directory."
+chflags hidden $dest
 
 # Rez, SetFile only in comamnd line tools
 # if [ -f nix-mac-icon.rsrc ]; then
@@ -179,7 +179,7 @@ chflags hidden /nix
 
 if [ -d /etc/paths.d ]; then
     echo "Adding /etc/paths.d/nix."
-    echo "/nix/var/nix/profiles/default/bin" > /etc/paths.d/nix
+    echo $dest/var/nix/profiles/default/bin > /etc/paths.d/nix
 fi
 
 cat >&2 <<EOF
