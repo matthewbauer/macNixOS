@@ -3,13 +3,10 @@
 NIX_PROFILE="$HOME"/.nix-profile
 APP_DIR="$HOME"/Applications
 
-# remove old links
+# remove broken links
 for f in "$APP_DIR"/*; do
-    link="$(readlink $f)"
-    if [ ! -z "$link" ]; then
-        if [[ "$link" == "$NIX_PROFILE/Applications/"* ]]; then
-            rm "$f"
-        fi
+    if [ -L "$f" ] && [ ! -e "$f" ]; then
+        rm "$f"
     fi
 done
 
